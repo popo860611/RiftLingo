@@ -23,35 +23,37 @@
                 <StackPanel>
                     <TextBlock Text="1　選擇聊天區" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
                     <TextBlock Text="切到遊戲畫面後框選左下角聊天文字。建議使用無邊框模式。" Foreground="#CBD5E1" Margin="0,6,0,14"/>
-                    <StackPanel Orientation="Horizontal"><Button x:Name="SelectRegionButton" Content="框選聊天區" Click="SelectRegionButton_Click" AutomationProperties.Name="框選聊天區"/><Button x:Name="PreviewButton" Content="測試辨識" Click="PreviewButton_Click" Background="#334155" BorderBrush="#64748B" AutomationProperties.Name="測試 OCR 辨識"/><TextBlock x:Name="RegionText" Text="尚未選擇" VerticalAlignment="Center" Foreground="#CBD5E1" Margin="8,0,0,0"/></StackPanel>
+                    <StackPanel Orientation="Horizontal"><Button x:Name="SelectRegionButton" Content="框選聊天區" Click="SelectRegionButton_Click" AutomationProperties.Name="框選聊天區"/><Button x:Name="PreviewButton" Content="測試 Gemini 翻譯" Click="PreviewButton_Click" Background="#334155" BorderBrush="#64748B" AutomationProperties.Name="測試 Gemini 圖片翻譯"/><TextBlock x:Name="RegionText" Text="尚未選擇" VerticalAlignment="Center" Foreground="#CBD5E1" Margin="8,0,0,0"/></StackPanel>
                 </StackPanel>
             </Border>
             <Border Grid.Row="2" Background="#192134" BorderBrush="#334155" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,14">
                 <StackPanel>
-                    <TextBlock Text="2　設定 Google 翻譯" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
-                    <TextBlock Text="金鑰使用 Windows 帳號加密後保存在本機，不會寫入 Git。只傳送 OCR 文字，不上傳截圖。" Foreground="#CBD5E1" TextWrapping="Wrap" Margin="0,6,0,10"/>
-                    <PasswordBox x:Name="ApiKeyBox" MinHeight="36" Padding="10,7" Background="#111827" Foreground="White" BorderBrush="#334155" AutomationProperties.Name="Google Cloud Translation API 金鑰"/>
+                    <TextBlock Text="2　設定 Gemini API" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                    <TextBlock Text="在 Google AI Studio 免費建立 API Key。金鑰會以 Windows 帳號加密保存在本機。" Foreground="#CBD5E1" TextWrapping="Wrap" Margin="0,6,0,10"/>
+                    <PasswordBox x:Name="ApiKeyBox" MinHeight="36" Padding="10,7" Background="#111827" Foreground="White" BorderBrush="#334155" AutomationProperties.Name="Gemini API Key"/>
+                    <TextBlock Margin="0,7,0,0"><Hyperlink NavigateUri="https://aistudio.google.com/app/apikey" RequestNavigate="OpenAiStudioLink_RequestNavigate" Foreground="#93C5FD">開啟 Google AI Studio 建立免費 Key</Hyperlink></TextBlock>
+                    <TextBlock Text="注意：框選的聊天區截圖會傳送給 Google Gemini；免費層資料可能用於改善 Google 產品。" FontSize="12" Foreground="#FDE68A" TextWrapping="Wrap" Margin="0,7,0,0"/>
                 </StackPanel>
             </Border>
             <Border Grid.Row="3" Background="#192134" BorderBrush="#334155" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,14">
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="OCR 語言" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,7"/>
-                        <TextBox x:Name="OcrLanguagesBox" Text="eng+jpn+kor+vie+tha+ind" MinHeight="36" Padding="10,7" Background="#111827" Foreground="White" BorderBrush="#334155" AutomationProperties.Name="OCR 語言代碼"/>
-                        <TextBlock Text="英文／日文／韓文／越南文／泰文／印尼文" FontSize="12" Foreground="#CBD5E1" Margin="0,5,0,0"/>
+                        <TextBlock Text="翻譯引擎" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,7"/>
+                        <Border MinHeight="36" Padding="10,7" Background="#111827" BorderBrush="#334155" BorderThickness="1" CornerRadius="3"><TextBlock Text="Gemini Flash-Lite・圖片辨識＋翻譯" Foreground="White"/></Border>
+                        <TextBlock Text="自動判斷英文／日文／韓文／東南亞語言" FontSize="12" Foreground="#CBD5E1" Margin="0,5,0,0"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2">
-                        <TextBlock Text="辨識間隔" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,7"/>
-                        <ComboBox x:Name="IntervalBox" SelectedIndex="2" MinHeight="36" AutomationProperties.Name="畫面辨識間隔">
-                            <ComboBoxItem Tag="500">0.5 秒（較耗資源）</ComboBoxItem><ComboBoxItem Tag="650">0.65 秒</ComboBoxItem>
-                            <ComboBoxItem Tag="800">0.8 秒（建議）</ComboBoxItem><ComboBoxItem Tag="1000">1 秒</ComboBoxItem><ComboBoxItem Tag="1500">1.5 秒（省資源）</ComboBoxItem>
+                        <TextBlock Text="檢查畫面間隔" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,7"/>
+                        <ComboBox x:Name="IntervalBox" SelectedIndex="2" MinHeight="36" AutomationProperties.Name="畫面變更檢查間隔">
+                            <ComboBoxItem Tag="500">0.5 秒</ComboBoxItem><ComboBoxItem Tag="650">0.65 秒</ComboBoxItem>
+                            <ComboBoxItem Tag="800">0.8 秒（建議）</ComboBoxItem><ComboBoxItem Tag="1000">1 秒</ComboBoxItem><ComboBoxItem Tag="1500">1.5 秒</ComboBoxItem>
                         </ComboBox>
                     </StackPanel>
                 </Grid>
             </Border>
             <Border Grid.Row="4" Background="#10261D" BorderBrush="#166534" BorderThickness="1" CornerRadius="12" Padding="18" Margin="0,0,0,18">
-                <StackPanel><TextBlock Text="安全邊界" FontWeight="SemiBold" Foreground="#86EFAC"/><TextBlock Text="只擷取螢幕像素與顯示獨立浮窗；不注入、不讀記憶體、不攔截封包、不模擬操作。" TextWrapping="Wrap" Margin="0,5,0,0" Foreground="#DCFCE7"/></StackPanel>
+                <StackPanel><TextBlock Text="安全邊界" FontWeight="SemiBold" Foreground="#86EFAC"/><TextBlock Text="只截取你框選的聊天區並傳給 Gemini；不注入、不讀記憶體、不攔截封包、不模擬操作。" TextWrapping="Wrap" Margin="0,5,0,0" Foreground="#DCFCE7"/></StackPanel>
             </Border>
             <Grid Grid.Row="5">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>

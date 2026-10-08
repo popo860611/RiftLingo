@@ -8,7 +8,7 @@ namespace RiftLingo.Services;
 
 public sealed class SettingsStore
 {
-    private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("RiftLingo.GoogleCloud.v1");
+    private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("RiftLingo.Gemini.v1");
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private readonly string _settingsPath;
 
@@ -37,26 +37,27 @@ public sealed class SettingsStore
 
     public void Save(AppSettings settings, string apiKey)
     {
-        settings.EncryptedGoogleApiKey = Encrypt(apiKey);
+        settings.EncryptedGeminiApiKey = Encrypt(apiKey);
         File.WriteAllText(_settingsPath, JsonSerializer.Serialize(settings, JsonOptions));
     }
 
     public string GetApiKey(AppSettings settings)
     {
-        var environmentKey = Environment.GetEnvironmentVariable("RIFTLINGO_GOOGLE_API_KEY");
+        var environmentKey = Environment.GetEnvironmentVariable("RIFTLINGO_GEMINI_API_KEY")
+            ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
         if (!string.IsNullOrWhiteSpace(environmentKey))
         {
             return environmentKey.Trim();
         }
 
-        if (string.IsNullOrWhiteSpace(settings.EncryptedGoogleApiKey))
+        if (string.IsNullOrWhiteSpace(settings.EncryptedGeminiApiKey))
         {
             return string.Empty;
         }
 
         try
         {
-            var protectedBytes = Convert.FromBase64String(settings.EncryptedGoogleApiKey);
+            var protectedBytes = Convert.FromBase64String(settings.EncryptedGeminiApiKey);
             return Encoding.UTF8.GetString(ProtectedData.Unprotect(protectedBytes, Entropy, DataProtectionScope.CurrentUser));
         }
         catch

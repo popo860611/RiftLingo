@@ -1,9 +1,11 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Navigation;
 using RiftLingo.Models;
 using RiftLingo.Services;
 using RiftLingo.Windows;
@@ -14,11 +16,10 @@ public partial class MainWindow : Window
 {
     private readonly SettingsStore _settingsStore = new();
     private readonly ScreenCaptureService _captureService = new();
-    private readonly OcrService _ocrService = new();
     private readonly ChatLineTracker _lineTracker = new();
     private readonly FrameChangeDetector _frameChangeDetector = new();
     private readonly TaiwaneseLolLocalizer _localizer = new();
-    private readonly GoogleTranslationService _translationService = new(new HttpClient { Timeout = TimeSpan.FromSeconds(12) });
+    private readonly GeminiScreenshotTranslationService _translationService = new(new HttpClient { Timeout = TimeSpan.FromSeconds(25) });
     private readonly GlobalHotkeyService _hotkeys = new();
     private readonly OverlayWindow _overlay = new();
     private AppSettings _settings;
@@ -68,15 +69,9 @@ public partial class MainWindow : Window
             return;
         }
         SaveSettingsFromUi();
-        var missing = _ocrService.MissingLanguages(_settings.OcrLanguages);
-        if (missing.Count > 0)
-        {
-            MessageBox.Show(this, $"缺少 OCR 模型：{string.Join(", ", missing)}\n\n請先執行 scripts\\download-models.ps1。", "尚未安裝 OCR 模型", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
         if (string.IsNullOrWhiteSpace(ApiKeyBox.Password))
         {
-            MessageBox.Show(this, "請輸入 Google Cloud Translation API 金鑰。", "RiftLingo", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, "請輸入 Gemini API Key。可在 Google AI Studio 免費建立。", "RiftLingo", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
         _lineTracker.Reset();
@@ -95,6 +90,12 @@ public partial class MainWindow : Window
 
     private void StopButton_Click(object sender, RoutedEventArgs e) => StopTranslation();
 
+    private void OpenAiStudioLink_RequestNavigate(object sender, RequestNavigateEventArgs e)
+    {
+        Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        e.Handled = true;
+    }
+
     private async Task RunCaptureLoopAsync(CancellationToken cancellationToken)
     {
         try
@@ -103,17 +104,14 @@ public partial class MainWindow : Window
             {
                 if (!_isPaused && _settings.CaptureRegion is { } region)
                 {
-                    var text = await Task.Run(() =>
+                    using var bitmap = await Task.Run(() => _captureService.Capture(region), cancellationToken);
+                    if (_frameChangeDetector.HasMeaningfulChange(bitmap))
                     {
-                        using var bitmap = _captureService.Capture(region);
-                        return _frameChangeDetector.HasMeaningfulChange(bitmap)
-                            ? _ocrService.Recognize(bitmap, _settings.OcrLanguages)
-                            : string.Empty;
-                    }, cancellationToken);
-                    foreach (var line in _lineTracker.FindNewLines(text).TakeLast(4))
-                    {
-                        var result = await _translationService.TranslateAsync(line, ApiKeyBox.Password, cancellationToken);
-                        _overlay.AddMessage(new ChatMessage(line, _localizer.Localize(result.Text), result.DetectedLanguage));
+                        var result = await _translationService.TranslateAsync(bitmap, ApiKeyBox.Password, _settings.GeminiModel, false, cancellationToken);
+                        foreach (var message in result.Messages.Where(message => _lineTracker.IsNewLine(message.Original)).TakeLast(4))
+                        {
+                            _overlay.AddMessage(message with { Translation = _localizer.Localize(message.Translation) });
+                        }
                     }
                 }
                 await Task.Delay(_settings.CaptureIntervalMs, cancellationToken);
@@ -145,29 +143,25 @@ public partial class MainWindow : Window
         }
 
         SaveSettingsFromUi();
-        var missing = _ocrService.MissingLanguages(_settings.OcrLanguages);
-        if (missing.Count > 0)
+        if (string.IsNullOrWhiteSpace(ApiKeyBox.Password))
         {
-            MessageBox.Show(this, $"缺少 OCR 模型：{string.Join(", ", missing)}", "尚未安裝 OCR 模型", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, "請輸入 Gemini API Key。", "RiftLingo", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
         PreviewButton.IsEnabled = false;
-        SetStatus("正在測試辨識", true);
+        SetStatus("正在測試 Gemini 翻譯", true);
         try
         {
-            var recognition = await Task.Run(() =>
-            {
-                using var bitmap = _captureService.Capture(region);
-                return _ocrService.RecognizeDetailed(bitmap, _settings.OcrLanguages, includePreview: true);
-            });
-            new OcrPreviewWindow(recognition) { Owner = this }.ShowDialog();
-            SetStatus("辨識測試完成", false);
+            using var bitmap = await Task.Run(() => _captureService.Capture(region));
+            var result = await _translationService.TranslateAsync(bitmap, ApiKeyBox.Password, _settings.GeminiModel, true, CancellationToken.None);
+            new GeminiPreviewWindow(result) { Owner = this }.ShowDialog();
+            SetStatus("Gemini 翻譯測試完成", false);
         }
         catch (Exception exception)
         {
-            SetStatus("辨識測試失敗", false, exception.Message);
-            MessageBox.Show(this, exception.Message, "無法測試辨識", MessageBoxButton.OK, MessageBoxImage.Warning);
+            SetStatus("Gemini 測試失敗", false, exception.Message);
+            MessageBox.Show(this, exception.Message, "無法測試 Gemini 翻譯", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally
         {
@@ -182,7 +176,6 @@ public partial class MainWindow : Window
     private void LoadSettingsIntoUi()
     {
         RegionText.Text = _settings.CaptureRegion?.ToString() ?? "尚未選擇";
-        OcrLanguagesBox.Text = _settings.OcrLanguages;
         ApiKeyBox.Password = _settingsStore.GetApiKey(_settings);
         foreach (var item in IntervalBox.Items.OfType<ComboBoxItem>())
             if (int.TryParse(item.Tag?.ToString(), out var interval) && interval == _settings.CaptureIntervalMs) { IntervalBox.SelectedItem = item; break; }
@@ -190,7 +183,6 @@ public partial class MainWindow : Window
 
     private void SaveSettingsFromUi()
     {
-        _settings.OcrLanguages = string.IsNullOrWhiteSpace(OcrLanguagesBox.Text) ? "eng+jpn+kor+vie+tha+ind" : OcrLanguagesBox.Text.Trim();
         if (IntervalBox.SelectedItem is ComboBoxItem item && int.TryParse(item.Tag?.ToString(), out var interval)) _settings.CaptureIntervalMs = interval;
         _settingsStore.Save(_settings, ApiKeyBox.Password);
     }
@@ -203,6 +195,6 @@ public partial class MainWindow : Window
 
     private void OnClosing(object? sender, CancelEventArgs e)
     {
-        StopTranslation(); SaveSettingsFromUi(); _hotkeys.Dispose(); _ocrService.Dispose(); _overlay.Close();
+        StopTranslation(); SaveSettingsFromUi(); _hotkeys.Dispose(); _overlay.Close();
     }
 }

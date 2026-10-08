@@ -28,7 +28,7 @@ public sealed class ChatLineTrackerTests
     }
 
     [Fact]
-    public void FindNewLines_SuppressesMinorOcrJitter()
+    public void FindNewLines_SuppressesMinorRecognitionJitter()
     {
         var tracker = new ChatLineTracker();
         tracker.FindNewLines("come drake now");
@@ -47,5 +47,14 @@ public sealed class ChatLineTrackerTests
         var result = tracker.FindNewLines("bot mia");
 
         Assert.Single(result);
+    }
+
+    [Fact]
+    public void IsNewLine_TracksBracketedChannelWithoutChangingCallerText()
+    {
+        var tracker = new ChatLineTracker();
+
+        Assert.True(tracker.IsNewLine("[ALL] Faker: mid mia"));
+        Assert.False(tracker.IsNewLine("[ALL] Faker: mid mia"));
     }
 }

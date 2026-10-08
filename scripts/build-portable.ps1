@@ -10,8 +10,16 @@ $publishDirectory = Join-Path $root "artifacts\publish\$Runtime"
 $outputDirectory = Join-Path $root 'outputs'
 $zipPath = Join-Path $outputDirectory "RiftLingo-portable-$Runtime.zip"
 $hashPath = "$zipPath.sha256"
+$resolvedRoot = [IO.Path]::GetFullPath($root)
+$resolvedPublishDirectory = [IO.Path]::GetFullPath($publishDirectory)
 
-& (Join-Path $PSScriptRoot 'download-models.ps1')
+if (-not $resolvedPublishDirectory.StartsWith($resolvedRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "Publish directory must stay inside the repository: $resolvedPublishDirectory"
+}
+if (Test-Path -LiteralPath $resolvedPublishDirectory) {
+    Remove-Item -LiteralPath $resolvedPublishDirectory -Recurse -Force
+}
+
 dotnet test (Join-Path $root 'RiftLingo.slnx') -c $Configuration
 if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
 dotnet publish (Join-Path $root 'src\RiftLingo\RiftLingo.csproj') -c $Configuration -r $Runtime --self-contained true -p:PublishSingleFile=false -o $publishDirectory

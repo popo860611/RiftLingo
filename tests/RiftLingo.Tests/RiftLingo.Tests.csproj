@@ -22,8 +22,4 @@
     <ProjectReference Include="..\..\src\RiftLingo\RiftLingo.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="..\..\src\RiftLingo\tessdata\*.traineddata" Link="tessdata\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
 </Project>

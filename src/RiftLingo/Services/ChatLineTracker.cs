@@ -14,26 +14,13 @@ public sealed partial class ChatLineTracker
         var result = new List<string>();
         foreach (var rawLine in ocrText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
         {
-            var line = WhitespaceRegex().Replace(rawLine, " ").Trim(' ', '|', '[', ']');
-            var comparable = Comparable(line);
-            if (line.Length < 2 || _known.Contains(line) || IsNearDuplicate(comparable))
-            {
-                continue;
-            }
-
-            _known.Add(line);
-            _recent.Enqueue(line);
-            _recentComparable.Enqueue(comparable);
-            result.Add(line);
-            while (_recent.Count > MaxRememberedLines)
-            {
-                _known.Remove(_recent.Dequeue());
-                _recentComparable.Dequeue();
-            }
+            if (TryTrack(rawLine, out var normalized)) result.Add(normalized);
         }
 
         return result;
     }
+
+    public bool IsNewLine(string line) => TryTrack(line, out _);
 
     public void Reset()
     {
@@ -49,6 +36,24 @@ public sealed partial class ChatLineTracker
     }
 
     private static string Comparable(string value) => new(value.Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
+
+    private bool TryTrack(string rawLine, out string normalized)
+    {
+        normalized = WhitespaceRegex().Replace(rawLine, " ").Trim(' ', '|', '[', ']');
+        var comparable = Comparable(normalized);
+        if (normalized.Length < 2 || _known.Contains(normalized) || IsNearDuplicate(comparable)) return false;
+
+        _known.Add(normalized);
+        _recent.Enqueue(normalized);
+        _recentComparable.Enqueue(comparable);
+        while (_recent.Count > MaxRememberedLines)
+        {
+            _known.Remove(_recent.Dequeue());
+            _recentComparable.Dequeue();
+        }
+
+        return true;
+    }
 
     private static double Similarity(string left, string right)
     {

@@ -9,17 +9,9 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>RiftLingo</AssemblyName>
     <RootNamespace>RiftLingo</RootNamespace>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <Authors>RiftLingo contributors</Authors>
-    <Description>Screen OCR translator overlay for League of Legends chat.</Description>
+    <Description>Gemini screenshot translation overlay for League of Legends chat.</Description>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Tesseract" Version="5.2.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="tessdata\*.traineddata" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
 
 </Project>
