@@ -23,7 +23,7 @@
                 <StackPanel>
                     <TextBlock Text="1　選擇聊天區" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
                     <TextBlock Text="切到遊戲畫面後框選左下角聊天文字。建議使用無邊框模式。" Foreground="#CBD5E1" Margin="0,6,0,14"/>
-                    <StackPanel Orientation="Horizontal"><Button x:Name="SelectRegionButton" Content="框選聊天區" Click="SelectRegionButton_Click" AutomationProperties.Name="框選聊天區"/><TextBlock x:Name="RegionText" Text="尚未選擇" VerticalAlignment="Center" Foreground="#CBD5E1" Margin="8,0,0,0"/></StackPanel>
+                    <StackPanel Orientation="Horizontal"><Button x:Name="SelectRegionButton" Content="框選聊天區" Click="SelectRegionButton_Click" AutomationProperties.Name="框選聊天區"/><Button x:Name="PreviewButton" Content="測試辨識" Click="PreviewButton_Click" Background="#334155" BorderBrush="#64748B" AutomationProperties.Name="測試 OCR 辨識"/><TextBlock x:Name="RegionText" Text="尚未選擇" VerticalAlignment="Center" Foreground="#CBD5E1" Margin="8,0,0,0"/></StackPanel>
                 </StackPanel>
             </Border>
             <Border Grid.Row="2" Background="#192134" BorderBrush="#334155" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,14">

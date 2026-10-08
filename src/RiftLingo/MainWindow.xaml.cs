@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     private readonly ScreenCaptureService _captureService = new();
     private readonly OcrService _ocrService = new();
     private readonly ChatLineTracker _lineTracker = new();
+    private readonly FrameChangeDetector _frameChangeDetector = new();
     private readonly TaiwaneseLolLocalizer _localizer = new();
     private readonly GoogleTranslationService _translationService = new(new HttpClient { Timeout = TimeSpan.FromSeconds(12) });
     private readonly GlobalHotkeyService _hotkeys = new();
@@ -79,9 +80,11 @@ public partial class MainWindow : Window
             return;
         }
         _lineTracker.Reset();
+        _frameChangeDetector.Reset();
         _captureCancellation = new CancellationTokenSource();
         _isPaused = false;
         StartButton.IsEnabled = false;
+        PreviewButton.IsEnabled = false;
         StopButton.IsEnabled = true;
         _overlay.ApplySettings(_settings);
         _overlay.PositionNear(_settings.CaptureRegion);
@@ -100,7 +103,13 @@ public partial class MainWindow : Window
             {
                 if (!_isPaused && _settings.CaptureRegion is { } region)
                 {
-                    var text = await Task.Run(() => { using var bitmap = _captureService.Capture(region); return _ocrService.Recognize(bitmap, _settings.OcrLanguages); }, cancellationToken);
+                    var text = await Task.Run(() =>
+                    {
+                        using var bitmap = _captureService.Capture(region);
+                        return _frameChangeDetector.HasMeaningfulChange(bitmap)
+                            ? _ocrService.Recognize(bitmap, _settings.OcrLanguages)
+                            : string.Empty;
+                    }, cancellationToken);
                     foreach (var line in _lineTracker.FindNewLines(text).TakeLast(4))
                     {
                         var result = await _translationService.TranslateAsync(line, ApiKeyBox.Password, cancellationToken);
@@ -121,8 +130,48 @@ public partial class MainWindow : Window
             _captureCancellation?.Dispose();
             _captureCancellation = null;
             StartButton.IsEnabled = true;
+            PreviewButton.IsEnabled = true;
             StopButton.IsEnabled = false;
             if (!_isPaused) SetStatus("尚未啟動", false);
+        }
+    }
+
+    private async void PreviewButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_settings.CaptureRegion is not { IsValid: true } region)
+        {
+            MessageBox.Show(this, "請先框選遊戲內的聊天區。", "RiftLingo", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        SaveSettingsFromUi();
+        var missing = _ocrService.MissingLanguages(_settings.OcrLanguages);
+        if (missing.Count > 0)
+        {
+            MessageBox.Show(this, $"缺少 OCR 模型：{string.Join(", ", missing)}", "尚未安裝 OCR 模型", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        PreviewButton.IsEnabled = false;
+        SetStatus("正在測試辨識", true);
+        try
+        {
+            var recognition = await Task.Run(() =>
+            {
+                using var bitmap = _captureService.Capture(region);
+                return _ocrService.RecognizeDetailed(bitmap, _settings.OcrLanguages, includePreview: true);
+            });
+            new OcrPreviewWindow(recognition) { Owner = this }.ShowDialog();
+            SetStatus("辨識測試完成", false);
+        }
+        catch (Exception exception)
+        {
+            SetStatus("辨識測試失敗", false, exception.Message);
+            MessageBox.Show(this, exception.Message, "無法測試辨識", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally
+        {
+            PreviewButton.IsEnabled = true;
         }
     }
 

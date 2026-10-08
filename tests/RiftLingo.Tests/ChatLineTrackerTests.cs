@@ -26,4 +26,26 @@ public sealed class ChatLineTrackerTests
 
         Assert.Single(tracker.FindNewLines("gg go next"));
     }
+
+    [Fact]
+    public void FindNewLines_SuppressesMinorOcrJitter()
+    {
+        var tracker = new ChatLineTracker();
+        tracker.FindNewLines("come drake now");
+
+        var result = tracker.FindNewLines("come drake n0w");
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void FindNewLines_KeepsMeaningfullyDifferentShortMessages()
+    {
+        var tracker = new ChatLineTracker();
+        tracker.FindNewLines("top mia");
+
+        var result = tracker.FindNewLines("bot mia");
+
+        Assert.Single(result);
+    }
 }
