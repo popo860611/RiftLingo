@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/RiftLingo/RiftLingo.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RiftLingo.Tests/RiftLingo.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,24 @@
+<Window x:Class="RiftLingo.Windows.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="clr-namespace:RiftLingo.Models"
+        Width="560" SizeToContent="Height" MaxHeight="360"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ShowInTaskbar="False" ShowActivated="False" Focusable="False">
+    <Border x:Name="OverlaySurface" Background="#E60B1220" BorderBrush="#665EEAD4" BorderThickness="1"
+            CornerRadius="12" Padding="14" SnapsToDevicePixels="True">
+        <ItemsControl x:Name="MessageList" ItemsSource="{Binding Messages}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type models:ChatMessage}">
+                    <Border BorderBrush="#334155" BorderThickness="0,0,0,1" Padding="0,7,0,9" Margin="0,0,0,2">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Original}" Foreground="#CBD5E1" FontSize="13" TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding Translation}" Foreground="White" FontSize="{Binding DataContext.OverlayFontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Border>
+</Window>
